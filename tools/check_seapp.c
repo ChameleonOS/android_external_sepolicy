@@ -162,8 +162,9 @@ key_map rules[] = {
                 { .name = "domain",         .type = dt_string, .dir = dir_out, .data = NULL },
                 { .name = "type",           .type = dt_string, .dir = dir_out, .data = NULL },
                 { .name = "levelFromUid",   .type = dt_bool,   .dir = dir_out, .data = NULL },
+                { .name = "levelFrom",      .type = dt_string,   .dir = dir_out, .data = NULL },
                 { .name = "level",          .type = dt_string, .dir = dir_out, .data = NULL },
-			};
+};
 
 /**
  * Head pointer to a linked list of
@@ -230,6 +231,8 @@ int check_type(sepol_policydb_t *db, char *type) {
  * 	The key map to check
  * @param lineno
  * 	The line number in the source file for the corresponding key map
+ * @return
+ * 	1 if valid, 0 if invalid
  */
 static int key_map_validate(key_map *m, int lineno) {
 
@@ -250,6 +253,15 @@ static int key_map_validate(key_map *m, int lineno) {
 	else if (type == dt_bool) {
 		log_error("Expected boolean value got: %s=%s on line: %d in file: %s\n",
 				key, value, lineno, out_file_name);
+		rc = 0;
+		goto out;
+	}
+
+	if (!strcasecmp(key, "levelFrom") &&
+	    (strcasecmp(value, "none") && strcasecmp(value, "all") &&
+	     strcasecmp(value, "app") && strcasecmp(value, "user"))) {
+		log_error("Unknown levelFrom=%s on line: %d in file: %s\n",
+			  value, lineno, out_file_name);
 		rc = 0;
 		goto out;
 	}
@@ -428,8 +440,11 @@ static void rule_map_free(rule_map *rm, rule_map_switch s) {
 		free(m->data);
 	}
 
+/* hdestroy() frees comparsion keys for non glibc */
+#ifdef __GLIBC__
 	if(s == rule_map_destroy_key && rm->key)
 		free(rm->key);
+#endif
 
 	free(rm);
 }
@@ -778,7 +793,10 @@ static void rule_add(rule_map *rm) {
 			 */
 			preserved_key = tmp->r->key;
 			rule_map_free(tmp->r, rule_map_preserve_key);
+/*  hdestroy() frees comparsion keys for non glibc */
+#ifdef __GLIBC__
 			free(rm->key);
+#endif
 			rm->key = preserved_key;
 			tmp->r = rm;
 		}
@@ -845,11 +863,11 @@ static void parse() {
 		log_info("Got line %d\n", lineno);
 		len = strlen(line_buf);
 		if (line_buf[len - 1] == '\n')
-			line_buf[len - 1] = 0;
+			line_buf[len - 1] = '\0';
 		p = line_buf;
 		while (isspace(*p))
 			p++;
-		if (*p == '#' || *p == 0)
+		if (*p == '#' || *p == '\0')
 			continue;
 
 		token = strtok_r(p, " \t", &saveptr);
