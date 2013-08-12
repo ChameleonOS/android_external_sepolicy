@@ -41,3 +41,5 @@ allow zygote labeledfs:filesystem remount;
 
 # Handle --invoke-with command when launching Zygote with a wrapper command.
 allow zygote zygote_exec:file { execute_no_trans open };
+allow zygote init:unix_stream_socket { write getattr setopt read getopt accept listen };
+
