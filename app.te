@@ -4,6 +4,13 @@
 #
 
 #
+# System apps (mainly for settings apk)
+#
+allow system_app init:binder call;
+allow system_app init:unix_stream_socket connectto;
+allow system_app property_socket:sock_file write;
+
+#
 # Apps signed with the platform key.
 #
 type platform_app, domain;
@@ -56,6 +63,7 @@ allow media_app download_file:file create_file_perms;
 # Allow platform apps to mark platform app data files as download files
 allow media_app platform_app_data_file:dir relabelfrom;
 allow media_app download_file:dir relabelto;
+allow media_app init:binder call;
 
 # Apps signed with the shared key.
 type shared_app, domain;
@@ -67,6 +75,9 @@ net_domain(shared_app)
 bluetooth_domain(shared_app)
 # ASEC
 r_dir_file(shared_app, asec_apk_file)
+allow shared_app init:binder call;
+allow shared_app init:unix_stream_socket { read write setopt };
+allow shared_app unlabeled:file { read getattr open };
 
 # Apps signed with the release key (testkey in AOSP).
 type release_app, domain;
@@ -76,6 +87,7 @@ platform_app_domain(release_app)
 net_domain(release_app)
 # Access bluetooth.
 bluetooth_domain(release_app)
+allow release_app init:binder call;
 
 # Services with isolatedProcess=true in their manifest.
 # In order for isolated_apps to interact with apps that have levelFromUid=true
